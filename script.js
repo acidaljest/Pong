@@ -6,19 +6,16 @@ let posicionRaquetaJugador, posicionRaquetaComputadora;
 let velocidadComputadora = 4;
 let puntajeJugador = 0;
 let puntajeComputadora = 0;
-let fondo;
-let bola;
-let barra1;
-let barra2;
+let fondo, imgPelota, imgRaquetaJugador, imgRaquetaComputadora;
+let sonidoRaqueta, sonidoFin;
 let anguloPelota = 0;
-let sonidoRaqueta;
-let sonidoFin;
+let juegoPausado = false; // Nueva variable para pausar el juego
 
 function preload() {
     fondo = loadImage("fondo1.png");
-    bola = loadImage("bola.png");
-    barra1 = loadImage("barra1.png");
-    barra2 = loadImage("barra2.png");
+    imgPelota = loadImage("bola.png");
+    imgRaquetaJugador = loadImage("barra1.png");
+    imgRaquetaComputadora = loadImage("barra2.png");
     sonidoRaqueta = loadSound("raquet.wav");
     sonidoFin = loadSound("end.wav");
 }
@@ -37,9 +34,22 @@ function setup() {
     // Posición inicial de las raquetas
     posicionRaquetaJugador = height / 2 - altoRaqueta / 1;
     posicionRaquetaComputadora = height / 2 - altoRaqueta / 1;
+
+    // Crear botón de pausa
+    let botonPausa = createButton("Pausar");
+    botonPausa.position(10, height + 10);
+    botonPausa.mousePressed(togglePausa);
 }
 
 function draw() {
+    if (juegoPausado) {
+        fill(255);
+        textAlign(CENTER, CENTER);
+        textSize(32);
+        text("Juego en pausa", width / 2, height / 2);
+        return;
+    }
+
     background(fondo);
 
     // Dibujar el marco superior e inferior
@@ -47,17 +57,19 @@ function draw() {
     rect(0, 0, width, 10); // Marco superior
     rect(0, height - 10, width, 10); // Marco inferior
 
-    // Dibujar la pelota con efecto de rotación
+    // Dibujar la pelota con rotación
     push();
     translate(posicionX, posicionY);
-    rotate(anguloPelota);
+    rotate(radians(anguloPelota));
     imageMode(CENTER);
-    image(bola, 0, 0, 20, 20);
+    image(imgPelota, 0, 0, 20, 20);
     pop();
 
-    // Dibujar las raquetas
-    image(barra1, 10, posicionRaquetaJugador, anchoRaqueta, altoRaqueta);
-    image(barra2, width - 14, posicionRaquetaComputadora, anchoRaqueta, altoRaqueta);
+    // Dibujar la raqueta del jugador
+    image(imgRaquetaJugador, 10, posicionRaquetaJugador, anchoRaqueta, altoRaqueta);
+
+    // Dibujar la raqueta de la computadora
+    image(imgRaquetaComputadora, width - 14, posicionRaquetaComputadora, anchoRaqueta, altoRaqueta);
 
     // Dibujar los puntajes
     textSize(32);
@@ -68,7 +80,9 @@ function draw() {
     // Movimiento de la pelota
     posicionX += velocidadX;
     posicionY += velocidadY;
-    anguloPelota += sqrt(velocidadX * velocidadX + velocidadY * velocidadY) * 0.05;
+
+    // Ajustar rotación de la pelota según la velocidad
+    anguloPelota += velocidadX;
 
     // Rebote en los marcos superior e inferior
     if (posicionY <= 10 || posicionY >= height - 10) {
@@ -100,16 +114,12 @@ function draw() {
     // Verificar si la pelota sale por los lados
     if (posicionX < 0) {
         puntajeComputadora++;
+        narrarMarcador();
         resetPelota();
-        if (puntajeComputadora === 10 || puntajeJugador === 10) {
-            sonidoFin.play();
-        }
     } else if (posicionX > width) {
         puntajeJugador++;
+        narrarMarcador();
         resetPelota();
-        if (puntajeComputadora === 10 || puntajeJugador === 10) {
-            sonidoFin.play();
-        }
     }
 
     // Movimiento de la computadora
@@ -144,4 +154,19 @@ function resetPelota() {
     posicionX = width / 2;
     posicionY = height / 2;
     velocidadX *= -1;
+    if (puntajeJugador >= 10 || puntajeComputadora >= 10) {
+        sonidoFin.play();
+        noLoop(); // Detener el juego cuando alguien gane
+    }
 }
+
+function narrarMarcador() {
+    let mensaje = `El marcador es ${puntajeJugador} a ${puntajeComputadora}`;
+    let narrador = new SpeechSynthesisUtterance(mensaje);
+    window.speechSynthesis.speak(narrador);
+}
+
+function togglePausa() {
+    juegoPausado = !juegoPausado;
+}
+
